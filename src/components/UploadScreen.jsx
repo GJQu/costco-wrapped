@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { normalizeCostco } from "../utils/normalizeCostco";
 
 export default function UploadScreen({ onDataLoaded }) {
   const [dragging, setDragging] = useState(false);
@@ -17,8 +18,10 @@ export default function UploadScreen({ onDataLoaded }) {
           return;
         }
 
+        const normalized = normalizeCostco(json);
+
         setError("");
-        onDataLoaded(json);
+        onDataLoaded(normalized);
       } catch (err) {
         setError("Could not parse JSON.");
       }
@@ -54,9 +57,7 @@ export default function UploadScreen({ onDataLoaded }) {
         <p className="text-xl text-gray-700 mb-4">
           Drag & drop your Costco JSON file
         </p>
-        <p className="text-sm text-gray-500">
-          or click to browse
-        </p>
+        <p className="text-sm text-gray-500">or click to browse</p>
 
         <input
           type="file"

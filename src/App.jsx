@@ -1,26 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-// import './App.css'
+import { useState } from "react";
+import UploadScreen from "./components/UploadScreen";
+import WrappedView from "./components/WrappedView";
+import DashboardView from "./components/DashboardView";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [data, setData] = useState(null);
+  const [mode, setMode] = useState("upload"); 
+  // modes: upload → wrapped → dashboard
+
+  const handleLoaded = (normalized) => {
+    if (Array.isArray(normalized)) {
+      setData(normalized);
+      setMode("wrapped");   // go straight into the Wrapped slideshow
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <h1 className="text-5xl font-bold text-costcoRed mb-6">
-        Costco Wrapped
-      </h1>
+    <>
+      {mode === "upload" && (
+        <UploadScreen onDataLoaded={handleLoaded} />
+      )}
 
-      <p className="text-lg text-costcoBlue">
-        If you see red + blue, Tailwind + custom colors are working.
-      </p>
+      {mode === "wrapped" && data && (
+        <WrappedView 
+          data={data} 
+          onDone={() => setMode("dashboard")} 
+        />
+      )}
 
-      <button className="mt-8 px-6 py-3 rounded-lg bg-costcoBlue text-white hover:bg-costcoRed transition">
-        Test Button
-      </button>
-    </div>
+      {mode === "dashboard" && data && (
+        <DashboardView data={data} />
+      )}
+    </>
   );
 }
 
-export default App
+export default App;
