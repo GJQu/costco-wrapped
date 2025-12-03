@@ -62,10 +62,48 @@ export default function WrappedView({ data, onDone }) {
   const [slide, setSlide] = useState(0);
   const metrics = computeMetrics(data);
 
+  const DELI_ITEMS = [
+  "Chicken Bake 🍗",
+  "$1.50 Hot Dog 🌭",
+  "Combo Pizza 🍕",
+  "Pepperoni Pizza 🍕",
+  "Cheese Pizza 🍕",
+  "Sundae 🍦",
+  "Chicken Caesar Salad 🥗"
+  ];
+
+  function pickDeliFavorite(totalSpend) {
+    // simple hash fn using mod
+    const index = Math.abs(Math.floor(totalSpend)) % DELI_ITEMS.length;
+    return DELI_ITEMS[index];
+  }
+
+  function SlideDeliFavorite({ metrics }) {
+    const favorite = pickDeliFavorite(metrics.totalSpend);
+
+    return (
+      <div className="text-center animate-fadeIn">
+        <h2 className="text-3xl font-bold text-costcoBlue mb-6">
+          Your Costco Food Court Vibe
+        </h2>
+
+        <p className="text-6xl font-extrabold text-costcoRed mb-4">
+          {favorite}
+        </p>
+
+        <p className="text-gray-600 text-lg">
+          Based on your Costco personality, we think this is your<br />
+          <span className="font-semibold">food court soulmate.</span>
+        </p>
+      </div>
+    );
+  }
+
   const slides = [
     <SlideTotalSpend key="spend" metrics={metrics} />,
     <SlideTopItems key="top" metrics={metrics} />,
     <SlideMonthly key="monthly" metrics={metrics} />,
+    <SlideDeliFavorite key="deli" metrics={metrics} />,
     <SlideFinished key="done" onDone={onDone} />,
   ];
 
@@ -115,7 +153,7 @@ function SlideTotalSpend({ metrics }) {
       <p className="text-6xl font-bold text-costcoBlue">
         ${metrics.totalSpend.toFixed(2)}
       </p>
-      <p className="text-gray-600 mt-4">Really hope you're an Executive Member.</p>
+      <p className="text-gray-600 mt-4">Hope you're an Executive Member! 🫣</p>
     </div>
   );
 }

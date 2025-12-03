@@ -6,12 +6,12 @@ import DashboardView from "./components/DashboardView";
 function App() {
   const [data, setData] = useState(null);
   const [mode, setMode] = useState("upload"); 
-  // modes: upload → wrapped → dashboard
+  // modes: upload -> wrapped -> dashboard
 
   const handleLoaded = (normalized) => {
     if (Array.isArray(normalized)) {
       setData(normalized);
-      setMode("wrapped");   // go straight into the Wrapped slideshow
+      setMode("wrapped");   // go straight into the Wrapped slideshow 
     }
   };
 
@@ -29,7 +29,9 @@ function App() {
       )}
 
       {mode === "dashboard" && data && (
-        <DashboardView data={data} />
+        <DashboardView
+        data={data}
+        onBack={() => setMode("wrapped")} />
       )}
     </>
   );
