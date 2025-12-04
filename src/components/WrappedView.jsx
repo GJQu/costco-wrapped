@@ -23,10 +23,28 @@ ChartJS.register(
 
 // Helper functions
 
+function categorizeItem(name) {
+  const n = name.toLowerCase();
+
+  if (n.includes("chicken") || n.includes("beef") || n.includes("pork")) return "Meat";
+  if (n.includes("salmon") || n.includes("shrimp") || n.includes("fish")) return "Seafood";
+  if (n.includes("milk") || n.includes("cheese") || n.includes("yogurt")) return "Dairy";
+  if (n.includes("bread") || n.includes("roll") || n.includes("bagel")) return "Bakery";
+  if (n.includes("wine") || n.includes("beer") || n.includes("vodka")) return "Alcohol";
+  if (n.includes("apple") || n.includes("banana") || n.includes("berry") || n.includes("fruit")) return "Produce";
+  if (n.includes("lettuce") || n.includes("salad") || n.includes("veggie") || n.includes("vegetable")) return "Produce";
+  if (n.includes("snack") || n.includes("chips") || n.includes("cracker")) return "Snacks";
+  if (n.includes("vitamin") || n.includes("supplement")) return "Supplements";
+  if (n.includes("kirkland")) return "KS Essentials";
+
+  return "Miscellaneous";
+}
+
 function computeMetrics(data) {
   const totalSpend = data.reduce((sum, r) => sum + (r.total || 0), 0);
 
   const itemCounts = {};
+  const categoryCounts = {};
   const monthlyTotals = {};
 
   data.forEach((r) => {
@@ -34,12 +52,17 @@ function computeMetrics(data) {
     r.items?.forEach((item) => {
       const name = item.name;
       itemCounts[name] = (itemCounts[name] || 0) + (item.qty || 1);
+      const category = categorizeItem(name);
+      categoryCounts[category] = (categoryCounts[category] || 0) + (item.qty || 1);
     });
-
+    
     // Monthly spend
     const month = r.date?.slice(0, 7) || "unknown"; // YYYY-MM
     monthlyTotals[month] = (monthlyTotals[month] || 0) + (r.total || 0);
   });
+
+  // Top Categories 
+  const topCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const topItems = Object.entries(itemCounts)
     .sort((a, b) => b[1] - a[1])
@@ -48,11 +71,32 @@ function computeMetrics(data) {
   const monthlyLabels = Object.keys(monthlyTotals).sort();
   const monthlyValues = monthlyLabels.map((m) => monthlyTotals[m]);
 
+  // --- Most Expensive Day ---
+  const spendByDate = {};
+
+  data.forEach((r) => {
+    const date = r.date || "unknown";
+    spendByDate[date] = (spendByDate[date] || 0) + (r.total || 0);
+  });
+
+  let mostExpensiveDay = null;
+  let mostExpensiveValue = 0;
+
+  Object.entries(spendByDate).forEach(([date, amount]) => {
+    if (amount > mostExpensiveValue) {
+      mostExpensiveValue = amount;
+      mostExpensiveDay = date;
+    }
+  });
+
   return {
     totalSpend,
     topItems,
+    topCategories,
     monthlyLabels,
     monthlyValues,
+    mostExpensiveDay, 
+    mostExpensiveValue
   };
 }
 
@@ -99,10 +143,76 @@ export default function WrappedView({ data, onDone }) {
     );
   }
 
+  function SlideTopCategories({ metrics }) {
+    const cats = metrics.topCategories;
+
+    return (
+      <div className="text-center animate-fadeIn">
+        <h2 className="text-3xl font-bold text-costcoBlue mb-10">
+          Your Top Costco Categories
+        </h2>
+
+        <div className="flex flex-col items-center gap-4">
+          {cats.map(([name, count], i) => (
+            <div
+              key={name}
+              className="text-4xl font-extrabold"
+              style={{
+                color: i === 0 ? "#DA1A32" : "#005CB9",
+              }}
+            >
+              {i + 1}. {name}  
+              <span className="text-gray-500 text-xl font-normal">— {count}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-gray-600 mt-6">
+          #2025Wrapped
+        </p>
+      </div>
+    );
+  }
+
+  function SlideMostExpensiveDay({ metrics }) {
+    const { mostExpensiveDay, mostExpensiveValue } = metrics;
+
+    // Format date nicely
+    const prettyDate = mostExpensiveDay
+      ? new Date(mostExpensiveDay).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "Unknown Date";
+
+    return (
+      <div className="text-center animate-fadeIn">
+        <h2 className="text-3xl font-bold text-costcoBlue mb-6">
+          Your Most Expensive Costco Day
+        </h2>
+
+        <p className="text-costcoRed text-6xl font-extrabold mb-4">
+          ${mostExpensiveValue.toFixed(2)}
+        </p>
+
+        <p className="text-2xl font-bold text-costcoBlue mb-2">
+          {prettyDate}
+        </p>
+
+        <p className="text-gray-600 text-lg">
+          Something big happened that day…
+        </p>
+      </div>
+    );
+  }
+
   const slides = [
     <SlideTotalSpend key="spend" metrics={metrics} />,
+    <SlideTopCategories key="cats" metrics={metrics} />,
     <SlideTopItems key="top" metrics={metrics} />,
     <SlideMonthly key="monthly" metrics={metrics} />,
+    <SlideMostExpensiveDay key="expday" metrics={metrics} />,
     <SlideDeliFavorite key="deli" metrics={metrics} />,
     <SlideFinished key="done" onDone={onDone} />,
   ];

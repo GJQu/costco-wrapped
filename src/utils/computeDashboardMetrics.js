@@ -1,23 +1,57 @@
+function cleanName(name) {
+  return name
+    .replace(/\bORG\b/gi, "")
+    .replace(/\bORGANIC\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function categorizeItem(name) {
+  const n = name.toLowerCase();
+
+  if (n.includes("chicken") || n.includes("beef") || n.includes("pork")) return "Meat";
+  if (n.includes("salmon") || n.includes("shrimp") || n.includes("fish")) return "Seafood";
+  if (n.includes("milk") || n.includes("cheese") || n.includes("yogurt")) return "Dairy";
+  if (n.includes("bread") || n.includes("roll") || n.includes("bagel")) return "Bakery";
+  if (n.includes("wine") || n.includes("beer") || n.includes("vodka")) return "Alcohol";
+  if (n.includes("apple") || n.includes("banana") || n.includes("berry") || n.includes("fruit")) return "Produce";
+  if (n.includes("lettuce") || n.includes("salad") || n.includes("veggie") || n.includes("vegetable")) return "Produce";
+  if (n.includes("snack") || n.includes("chips") || n.includes("cracker")) return "Snacks";
+  if (n.includes("vitamin") || n.includes("supplement")) return "Supplements";
+  if (n.includes("kirkland")) return "KS Essentials";
+
+  return "Miscellaneous";
+}
+
 export function computeDashboardMetrics(data) {
-  const itemStats = {};
+  const itemStats = {};     // name → aggregates
+  const categoryTotals = {}; 
   const monthly = {};
+  const warehouseTotals = {};
+  const dayTotals = {};
+
   let totalSpent = 0;
   let totalItems = 0;
 
   data.forEach((receipt) => {
-    const receiptTotal = receipt.total || 0;
-    const date = receipt.date || "";
+    const date = receipt.date;
     const month = date.slice(0, 7);
+    const warehouse = receipt.warehouseName || "Unknown";
 
-    totalSpent += receiptTotal;
-    monthly[month] = (monthly[month] || 0) + receiptTotal;
+    totalSpent += receipt.total;
+    monthly[month] = (monthly[month] || 0) + receipt.total;
+    dayTotals[date] = (dayTotals[date] || 0) + receipt.total;
+    warehouseTotals[warehouse] = (warehouseTotals[warehouse] || 0) + receipt.total;
 
     receipt.items.forEach((item) => {
-      totalItems += item.qty || 1;
+      totalItems += item.qty;
 
-      if (!itemStats[item.name]) {
-        itemStats[item.name] = {
-          name: item.name,
+      // initialize item record
+      const cleaned = cleanName(item.name);
+
+      if (!itemStats[cleaned]) {
+        itemStats[cleaned] = {
+          name: cleaned,
           qty: 0,
           totalSpent: 0,
           prices: [],
@@ -25,70 +59,71 @@ export function computeDashboardMetrics(data) {
         };
       }
 
-      const record = itemStats[item.name];
+      const rec = itemStats[cleaned];
 
-      record.qty += item.qty || 1;
-      record.totalSpent += item.price || 0;
-      record.prices.push(item.price || 0);
-      record.dates.push(date);
+      // aggregate
+      rec.qty += item.qty;
+      rec.totalSpent += item.price;
+      rec.prices.push(item.price);
+      rec.dates.push(date);
+
+      // categorize
+      const cat = categorizeItem(item.name);
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + item.price;
     });
   });
 
-  const uniqueItems = Object.keys(itemStats).length;
   const receipts = data.length;
+  const uniqueItems = Object.keys(itemStats).length;
 
+  // Top items by quantity
   const mostPurchased = Object.values(itemStats)
-    .sort((a, b) => b.qty - a.qty);
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 10);
 
-  const mostExpensive = Object.values(itemStats)
+  // Repeat purchases by number of distinct months
+  const repeatPurchases = Object.values(itemStats)
     .map((it) => ({
-      ...it,
-      avgPrice: it.totalSpent / it.prices.length,
-      maxPrice: Math.max(...it.prices),
+      name: it.name,
+      months: new Set(it.dates.map(d => d.slice(0, 7))).size,
+      qty: it.qty
     }))
-    .sort((a, b) => b.avgPrice - a.avgPrice);
+    .sort((a, b) => b.months - a.months)
+    .slice(0, 10);
 
-  const mostTotalSpent = Object.values(itemStats)
-    .sort((a, b) => b.totalSpent - a.totalSpent);
-
+  // Price changes
   const priceIncreases = Object.values(itemStats)
-    .map((it) => {
-      const min = Math.min(...it.prices);
-      const max = Math.max(...it.prices);
-      const increase = max - min;
+    .filter(it => it.prices.length > 1)
+    .map((it) => ({
+      name: it.name,
+      minPrice: Math.min(...it.prices),
+      maxPrice: Math.max(...it.prices),
+      increase: Math.max(...it.prices) - Math.min(...it.prices)
+    }))
+    .sort((a, b) => b.increase - a.increase)
+    .slice(0, 10);
 
-      const sortedDates = it.dates.filter(Boolean).sort();
-      let periodMonths = 0;
+  // Category sorted
+  const categoryBreakdown = Object.entries(categoryTotals)
+    .filter(([cat]) => cat !== "Miscellaneous")   // remove miscellaneous
+    .sort((a, b) => b[1] - a[1]);
 
-      if (sortedDates.length >= 2) {
-        const first = new Date(sortedDates[0]);
-        const last = new Date(sortedDates[sortedDates.length - 1]);
-        periodMonths = (last - first) / (1000 * 60 * 60 * 24 * 30.5);
-      }
-
-      const ratePerMonth = periodMonths ? increase / periodMonths : 0;
-
-      return {
-        ...it,
-        minPrice: min,
-        maxPrice: max,
-        increase,
-        periodMonths,
-        ratePerMonth
-      };
-    })
-    .sort((a, b) => b.increase - a.increase);
+  // Top 5 expensive days
+  const expensiveDays = Object.entries(dayTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
 
   return {
     totalSpent,
     totalItems,
-    uniqueItems,
     receipts,
-    itemStats,
+    uniqueItems,
+    monthly,
+    categoryBreakdown,
     mostPurchased,
-    mostExpensive,
-    mostTotalSpent,
+    repeatPurchases,
     priceIncreases,
-    monthly
+    warehouseTotals,
+    expensiveDays
   };
 }
