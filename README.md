@@ -26,8 +26,6 @@ Once you upload your Costco JSON receipts, the app generates a slideshow summari
 
 Beautiful Costco-themed colors, animations, and a smooth flow between slides.
 
----
-
 ## 📊 Deep-Dive Dashboard
 
 After the Wrapped slideshow, you unlock a full analytics dashboard with:
@@ -57,8 +55,6 @@ For each item with multiple purchase points.
 ### **Most Expensive Days**
 Top 5 biggest Costco days — for accountability or nostalgia.
 
----
-
 ## 📦 JSON Schema Normalization
 
 Costco’s export format is very noisy and inconsistent.  
@@ -82,8 +78,6 @@ Key steps:
 	•	Ensure quantity and price validity
 	•	Remove trailing numbers after “#”
 
-⸻
-
 ## 🧠 Analytics Engine
 
 Analytics are computed client-side in:
@@ -100,8 +94,6 @@ This module computes:
 
 It powers both the Wrapped slideshow and Dashboard.
 
-⸻
-
 ## 🧰 Tech Stack
 
 Area	Library / Tool
@@ -113,8 +105,6 @@ State Handling	React Hooks
 Data Parsing	Custom JS normalization utilities
 
 Everything is written in plain JS/JSX for portability and clarity.
-
-⸻
 
 ## 🚀 Running the Project
 
@@ -130,9 +120,6 @@ Build for Production
 
 npm run build
 
-
-⸻
-
 ## 📁 Project Structure
 
 src/
@@ -146,15 +133,10 @@ src/
   App.jsx
   main.jsx
 
-
-⸻
-
 ## Privacy & Data Handling
 	•	Your Costco data never leaves your machine
 	•	No API calls or external storage
 	•	Everything is processed live in your browser session
-
-⸻
 
 ## 🎨 Design Language
 
@@ -165,8 +147,6 @@ costcoRed: "#DA1A32"
 
 UI is intentionally minimal, bold, and chart-driven.
 
-⸻
-
 ## Roadmap
 
 Planned or possible next enhancements:
@@ -175,8 +155,6 @@ Planned or possible next enhancements:
 	•	Costco persona generator badge
 	•	Exportable summary image for social sharing
 	•	Mobile Wrapped flow (vertical swipe UX)
-
-⸻
 
 ## License
 
